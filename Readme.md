@@ -13,7 +13,8 @@ Planar lightsails (e.g., Breakthrough Starshot) encounter destabilizing beam-sli
 ## Mathematical Model
 Based on the preprint:
 > **Ziya Yeşilbahçe (2026).** *Chiral Photonic Sail Dynamics for Beam-Riding Stability and Gyroscopic Rigidity in Directed Energy Interstellar Probes.* Zenodo. [DOI: 10.5281/zenodo.22939390](https://doi.org/10.5281/zenodo.22939390)
-
+## Simulation Results
+![VO-3 Chiralis Flight Dynamics](vo3_chiralis_simulation.png)
 ## Quick Start
 ```bash
 git clone [https://github.com/](https://github.com/)<kullanici-adin>/vo3-chiralis-sim.git
