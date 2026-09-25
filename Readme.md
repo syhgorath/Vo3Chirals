@@ -17,7 +17,7 @@ Based on the preprint:
 ![VO-3 Chiralis Flight Dynamics](vo3_chiralis_simulation.png)
 ## Quick Start
 ```bash
-git clone [https://github.com/](https://github.com/)<kullanici-adin>/Vo3Chirals.git
+git clone https://github.com/syhgorath/Vo3Chirals.git
 cd vo3-chiralis-sim
 pip install -r requirements.txt
 python chiral_sail_sim.py
