@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>VO-3 Chiralis: Nihai Ay Operasyonu v4.1</title>
+<style>
+:root {
+  --bg: #030712; --panel: #0f172a; --accent: #38bdf8; --laser: #00f0ff;
+  --sail: #f59e0b; --success: #10b981; --danger: #ef4444; --warn: #fbbf24;
+  --auto: #a855f7; --text: #f8fafc;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', monospace, sans-serif; }
+body { background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+#sidebar {
+  width: 440px; background: var(--panel); border-right: 1px solid #1e293b;
+  padding: 14px; display: flex; flex-direction: column; gap: 10px;
+  overflow-y: auto; z-index: 10;
+}
+#viewport { flex: 1; position: relative; background: #000; }
+canvas { width: 100%; height: 100%; display: block; }
+h1 { font-size: 0.95rem; color: var(--accent); margin-bottom: 2px; }
+.subtitle { font-size: 0.68rem; color: #64748b; margin-bottom: 6px; }
+.card { background: #1e293b; padding: 10px; border-radius: 6px; border: 1px solid #334155; }
+.card.auto-card { border-color: var(--auto); box-shadow: 0 0 12px rgba(168, 85, 247, 0.2); }
+.card.success-card { border-color: var(--success); box-shadow: 0 0 12px rgba(16, 185, 129, 0.2); }
+.card-title {
+  font-size: 0.72rem; font-weight: bold; color: var(--accent);
+  margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.card.auto-card .card-title { color: var(--auto); }
+.card.success-card .card-title { color: var(--success); }
+.mode-toggle {
+  display: flex; gap: 4px; background: #0f172a; padding: 3px;
+  border-radius: 5px; border: 1px solid #334155; margin-bottom: 8px;
+}
+.mode-toggle button {
+  flex: 1; padding: 6px; font-size: 0.65rem; font-weight: bold;
+  background: transparent; color: #64748b; border: none;
+  border-radius: 3px; cursor: pointer; transition: 0.2s;
+}
+.mode-toggle button.active { background: var(--accent); color: #000; }
+.mode-toggle button.active.auto { background: var(--auto); color: #fff; }
+label { font-size: 0.68rem; display: flex; justify-content: space-between; margin: 5px 0 2px 0; color: #cbd5e1; }
+input[type=range], select, input[type=date] {
+  width: 100%; accent-color: var(--accent); background: #0f172a;
+  color: #fff; border: 1px solid #475569; padding: 4px; font-size: 0.72rem; border-radius: 4px;
+}
+.btn-grid { display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 6px; }
+.btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+button {
+  padding: 10px; font-weight: bold; font-size: 0.72rem; border-radius: 4px;
+  border: none; cursor: pointer; transition: 0.2s; letter-spacing: 0.3px;
+}
+button:hover { filter: brightness(1.15); }
+button:active { transform: scale(0.98); }
+button:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }
+button.launch { background: var(--success); color: #000; }
+button.laser { background: var(--laser); color: #000; }
+button.reset { background: #475569; color: #fff; }
+button.analyze { background: #8b5cf6; color: #fff; }
+button.target { background: #06b6d4; color: #000; }
+button.prograde { background: #22c55e; color: #000; }
+button.retrograde { background: #f97316; color: #000; }
+button.auto-btn { background: var(--auto); color: #fff; }
+button.auto-btn:hover { box-shadow: 0 0 15px rgba(168, 85, 247, 0.5); }
+button.return { background: var(--warn); color: #000; }
+.hud-box {
+  position: absolute; top: 12px; right: 12px; background: rgba(15, 23, 42, 0.92);
+  border: 1px solid #334155; padding: 12px; border-radius: 6px; min-width: 340px;
+  font-size: 0.72rem; pointer-events: none; backdrop-filter: blur(8px);
+}
+.hud-box.auto-mode { border-color: var(--auto); box-shadow: 0 0 20px rgba(168, 85, 247, 0.3); }
+.hud-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+.hud-val { font-weight: bold; color: #fff; }
+.stage-badge {
+  display: inline-block; padding: 2px 7px; border-radius: 3px;
+  font-size: 0.62rem; font-weight: bold; background: rgba(56, 189, 248, 0.2);
+  color: var(--accent); border: 1px solid var(--accent);
+}
+.stage-badge.success { background: rgba(16, 185, 129, 0.2); color: var(--success); border-color: var(--success); }
+.stage-badge.danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); border-color: var(--danger); }
+.stage-badge.warn { background: rgba(251, 191, 36, 0.2); color: var(--warn); border-color: var(--warn); }
+.stage-badge.auto { background: rgba(168, 85, 247, 0.2); color: var(--auto); border-color: var(--auto); }
+.result-box { margin-top: 8px; padding: 8px; border-radius: 4px; font-size: 0.68rem; line-height: 1.5; }
+.result-box.success { background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); }
+.result-box.danger { background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); }
+.result-box.info { background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); }
+.result-box .detail { color: #94a3b8; }
+.warning-banner {
+  padding: 6px 10px; border-radius: 4px; font-size: 0.68rem;
+  font-weight: bold; margin-top: 6px; animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+.fuel-bar { height: 8px; background: #0f172a; border-radius: 4px; overflow: hidden; margin-top: 4px; border: 1px solid #334155; }
+.fuel-fill { height: 100%; background: linear-gradient(90deg, #10b981, #38bdf8); transition: width 0.3s; }
+.fuel-fill.warn { background: linear-gradient(90deg, #fbbf24, #f97316); }
+.fuel-fill.danger { background: linear-gradient(90deg, #ef4444, #dc2626); }
+.auto-status { font-size: 0.62rem; color: var(--auto); margin-top: 4px; padding: 4px 6px; background: rgba(168, 85, 247, 0.1); border-radius: 3px; border-left: 2px solid var(--auto); }
+.log-entry { margin-bottom: 2px; font-size: 0.62rem; }
+.summary-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+  font-size: 0.65rem; margin-top: 4px;
+}
+.summary-item {
+  background: rgba(15, 23, 42, 0.6); padding: 4px 6px; border-radius: 3px;
+  border-left: 2px solid var(--accent);
+}
+.summary-label { color: #94a3b8; font-size: 0.58rem; display: block; }
+.summary-value { color: #fff; font-weight: bold; }
+.perf-badge {
+  position: absolute; bottom: 12px; left: 12px; background: rgba(15, 23, 42, 0.85);
+  border: 1px solid #334155; padding: 6px 10px; border-radius: 4px;
+  font-size: 0.62rem; color: #94a3b8; pointer-events: none;
+}
+.perf-badge b { color: var(--accent); }
+.perf-badge.warn b { color: var(--warn); }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div>
+    <h1>VO-3 Nihai Ay Operasyonu v4.1</h1>
+    <div class="subtitle">CCW Yörünge + Lead-Angle Düzeltmesi + Sub-Step Koruması</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Kontrol Modu</div>
+    <div class="mode-toggle">
+      <button id="mode-manual" class="active">👤 MANUEL</button>
+      <button id="mode-auto">🤖 OTO-PİLOT</button>
+    </div>
+    <div id="modeInfo" style="font-size:0.62rem;color:#94a3b8;line-height:1.4;">
+      Manuel modda tüm parametreleri siz kontrol edersiniz.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Simülasyon Kontrolü</div>
+    <label>Simülasyon Hızı: <span id="v-warp">2000</span>x</label>
+    <input type="range" id="warp" min="100" max="20000" value="2000" step="100">
+
+    <label>Başlangıç Tarihi:</label>
+    <input type="date" id="startDate" value="2026-04-15">
+
+    <div class="btn-grid" style="margin-top:8px;">
+      <button id="btn-analyze" class="analyze">🔍 FIRLATMA FIRSATI ANALİZİ</button>
+    </div>
+    <div id="analysisOutput" style="margin-top:6px;font-size:0.65rem;color:#94a3b8;line-height:1.5;"></div>
+  </div>
+
+  <div class="card auto-card" id="autoPanel" style="display:none;">
+    <div class="card-title">🤖 Oto-Pilot Kontrol</div>
+    <div style="font-size:0.65rem;color:#94a3b8;margin-bottom:6px;line-height:1.4;">
+      CCW transfer + adaptif fren + otomatik TEI.
+    </div>
+    <label>Ay'da Kalma Süresi: <span id="v-stayDays">3.0</span> gün</label>
+    <input type="range" id="stayDays" min="0.5" max="10" value="3" step="0.5">
+
+    <label>Dönüş Yap:</label>
+    <select id="returnMode">
+      <option value="yes">Evet (TEI + Dünya'ya dönüş)</option>
+      <option value="no">Hayır (Ay yörüngesinde kal)</option>
+    </select>
+
+    <label style="margin-top:8px;">
+      <span>Kritik Manevra Koruması</span>
+      <input type="checkbox" id="warpGuard" checked style="width:auto;accent-color:var(--auto);">
+    </label>
+    <div style="font-size:0.58rem;color:#94a3b8;">SOI/LOI sırasında warp otomatik düşer</div>
+
+    <div class="btn-grid">
+      <button id="btn-auto-launch" class="auto-btn">🚀 OTO-GÖREVİ BAŞLAT</button>
+    </div>
+    <div id="autoStatus" class="auto-status" style="display:none;"></div>
+  </div>
+
+  <div class="card" id="manualPanel">
+    <div class="card-title">Yörünge Parametreleri (Manuel)</div>
+    <label>LEO İrtifası: <span id="v-leoAlt">300</span> km</label>
+    <input type="range" id="leoAlt" min="200" max="800" value="300" step="10">
+
+    <label>TLI Hızı (Δv): <span id="v-tliDeltaV">3125</span> m/s</label>
+    <input type="range" id="tliDeltaV" min="2900" max="3400" value="3125" step="0.5">
+
+    <label>Hedef Ay İrtifası: <span id="v-captureAlt">1500</span> km</label>
+    <input type="range" id="captureAlt" min="200" max="5000" value="1500" step="50">
+
+    <div class="btn-grid" style="margin-top:8px;">
+      <button id="btn-target" class="target">🎯 OTOMATİK HEDEFLE</button>
+    </div>
+    <div id="targetOutput" style="margin-top:6px;font-size:0.62rem;color:#94a3b8;line-height:1.4;"></div>
+  </div>
+
+  <div class="card" id="burnPanel">
+    <div class="card-title">🚀 İtki Kontrolü (Manuel)</div>
+    <label>İtki Miktarı (Δv): <span id="v-burnDV">50</span> m/s</label>
+    <input type="range" id="burnDV" min="1" max="1000" value="50" step="1">
+
+    <div class="btn-row">
+      <button id="btn-prograde" class="prograde">▲ PROGRADE</button>
+      <button id="btn-retrograde" class="retrograde">▼ RETROGRADE</button>
+    </div>
+
+    <div style="margin-top:8px;">
+      <label>Yakıt: <span id="v-fuel">100.0</span>% — <span id="v-fuel-kg">3.000 kg</span></label>
+      <div class="fuel-bar"><div class="fuel-fill" id="fuelFill" style="width:100%"></div></div>
+    </div>
+    <div id="burnLog" style="font-size:0.62rem;color:#94a3b8;margin-top:6px;max-height:80px;overflow-y:auto;"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Dünya → Ay Transferi</div>
+    <button id="btn-launch" class="launch">🚀 AY'A FIRLAT (TLI)</button>
+    <div id="captureResult" class="result-box" style="display:none;"></div>
+    <div id="warningBanner" style="display:none;"></div>
+  </div>
+
+  <div class="card success-card" id="summaryCard" style="display:none;">
+    <div class="card-title">📊 Görev Özeti Raporu</div>
+    <div id="summaryContent" class="summary-grid"></div>
+    <div class="btn-grid" style="margin-top:8px;">
+      <button id="btn-return-now" class="return" style="display:none;">🌍 DÜNYA'YA DÖN (TEI)</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Lazer İtki Sistemi (Yıldızlararası)</div>
+    <label>Lazer Gücü: <span id="v-power">100</span> MW</label>
+    <input type="range" id="power" min="20" max="300" value="100" step="10">
+
+    <div class="btn-grid">
+      <button id="btn-fire" class="laser">⚡ LAZER İTKİSİNİ ATEŞLE</button>
+      <button id="btn-reset" class="reset">🔄 Sıfırla</button>
+    </div>
+  </div>
+</div>
+
+<div id="viewport">
+  <canvas id="canvas"></canvas>
+  <div class="hud-box" id="hudBox">
+    <div style="font-weight:bold;border-bottom:1px solid #334155;padding-bottom:4px;margin-bottom:6px;">
+      DURUM: <span id="h-stage" class="stage-badge">LEO BEKLEMEDE</span>
+      <span id="h-mode" class="stage-badge auto" style="float:right;display:none;">🤖 OTO</span>
+    </div>
+    <div class="hud-row"><span>Görev Süresi:</span><span id="h-time" class="hud-val">0.00 gün</span></div>
+    <div class="hud-row"><span>Dünya Mesafesi:</span><span id="h-dist-e" class="hud-val">6,671 km</span></div>
+    <div class="hud-row"><span>Ay Mesafesi:</span><span id="h-dist-m" class="hud-val">384,400 km</span></div>
+    <div class="hud-row"><span>Araç Hızı:</span><span id="h-vel" class="hud-val">7.73 km/s</span></div>
+    <div class="hud-row"><span>Göreceli Ay Hızı:</span><span id="h-rel-vel" class="hud-val">—</span></div>
+    <div class="hud-row"><span>Ay Çekimi (SOI):</span><span id="h-capture" class="hud-val" style="color:#94a3b8;">Dışında</span></div>
+    <div class="hud-row"><span>Yörünge Yönü:</span><span id="h-dir" class="hud-val" style="color:#10b981;">CCW (Prograde)</span></div>
+    <div class="hud-row"><span>Araç Kütlesi:</span><span id="h-mass" class="hud-val">5.000 kg</span></div>
+    <div class="hud-row"><span>Yakıt:</span><span id="h-fuel" class="hud-val">3.000 kg</span></div>
+    <div id="h-auto-info" style="display:none;border-top:1px solid var(--auto);margin-top:4px;padding-top:4px;color:var(--auto);font-size:0.65rem;">
+      <div id="h-auto-status">Oto-pilot hazır</div>
+    </div>
+  </div>
+  <div class="perf-badge" id="perfBadge">
+    FPS: <b id="p-fps">—</b> | Sub-step: <b id="p-substep">—</b> | dtSub: <b id="p-dtsub">—</b> ms | Efektif Warp: <b id="p-ewarp">—</b> | <span id="p-status"></span>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// SABİTLER
+// ============================================================
+const G = 6.67430e-11;
+const M_EARTH = 5.972e24;
+const M_MOON = 7.342e22;
+const R_EARTH = 6371e3;
+const R_MOON = 1737e3;
+const D_EARTH_MOON_AVG = 384400e3;
+const OMEGA_MOON = 2.6617e-6;      // + = CCW (Kuzey kutbundan bakınca saat yönünün tersi)
+const SOI_MOON = 66100e3;
+const ISP = 3000;
+const G0 = 9.80665;
+
+const DRY_MASS = 2.0;
+const INITIAL_FUEL_KG = 3.0;
+const INITIAL_MASS = DRY_MASS + INITIAL_FUEL_KG;
+
+const MAX_TRANSIT_TIME = 8 * 86400;
+const PERIAPSIS_TIMEOUT = 24 * 3600;
+const MIN_SAFE_ALT = 500e3;
+
+// TRANSFER SÜRESİ
+const T_FLIGHT = 268000;   // sn
+
+// LEAD ANGLE: Ay uçuş boyunca ne kadar döner?
+const MOON_ROTATION_DURING_FLIGHT = OMEGA_MOON * T_FLIGHT;  // ~0.713 rad
+// Doğru fırlatma açısı offset'i: araç 180° döner, Ay ise 0.713 rad döner
+// Hedef açı = Ay'ın şu anki açısı - π + (Ay'ın döndüğü açı) + küçük lead
+const LEAD_ANGLE_BASE = Math.PI - MOON_ROTATION_DURING_FLIGHT;  // ~2.428 rad
+
+const CRITICAL_WARP_CAP = 1000;
+const MAX_SUBSTEPS = 200;   // ⚠️ CPU koruması
+
+// ============================================================
+// DURUM
+// ============================================================
+let stage = "LEO";
+let missionTime = 0;
+let simStartDate = new Date("2026-04-15T12:00:00Z");
+
+let craft = { x: 0, y: 0, vx: 0, vy: 0, mass: INITIAL_MASS, fuel: INITIAL_FUEL_KG };
+let moon = { x: 0, y: 0, vx: 0, vy: 0 };
+let trail = [];
+let predictedPath = [];
+let burnLog = [];
+
+let missionStats = {
+  startTime: 0, launchTime: null, soiEntryTime: null, orbitTime: null,
+  loiDeltaV: 0, tliDeltaV: 0, teiDeltaV: 0, totalDeltaV: 0, corrections: 0,
+  launchDate: null, orbitEntryDate: null, returnDate: null,
+  periapsis: null, ecc: null, loiCount: 0
+};
+
+let autoMode = false;
+let autoState = {
+  active: false, phase: "IDLE",
+  targetTLI: 0, corrections: 0, totalDeltaV: 0,
+  launchTime: null, lastCorrTime: 0, targetLaunchTime: 0,
+  periapsisWaitStart: null,
+  orbitStartTime: null,
+  returnTriggered: false,
+  loiBurnCount: 0
+};
+
+let autoLastRunTime = -1e9;
+const AUTO_MIN_INTERVAL = 0.5;
+
+// ============================================================
+// YARDIMCILAR
+// ============================================================
+const setTxt = (id, txt) => document.getElementById(id).innerText = txt;
+const getVal = id => parseFloat(document.getElementById(id).value);
+function getSimDate() { return new Date(simStartDate.getTime() + missionTime * 1000); }
+function formatDateTR(d) { return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }); }
+
+function updateAutoStatus(msg) {
+  const el = document.getElementById('autoStatus'); el.style.display = 'block'; el.innerText = msg;
+  const hudEl = document.getElementById('h-auto-info'); hudEl.style.display = 'block';
+  document.getElementById('h-auto-status').innerText = msg;
+  if (autoState.phase === "FAILED" || autoState.phase === "CRASHED") {
+    el.style.color = 'var(--danger)'; el.style.borderLeftColor = 'var(--danger)';
+    hudEl.style.color = 'var(--danger)'; hudEl.style.borderTopColor = 'var(--danger)';
+  } else {
+    el.style.color = 'var(--auto)'; el.style.borderLeftColor = 'var(--auto)';
+    hudEl.style.color = 'var(--auto)'; hudEl.style.borderTopColor = 'var(--auto)';
+  }
+}
+
+// ============================================================
+// AY MODELİ — CCW YÖRÜNGE
+// ============================================================
+// Ay, Dünya etrafında saat yönünün TERSİNE (CCW) döner.
+// Konum: x = r·cos(ωt + φ0), y = r·sin(ωt + φ0)
+// ω = +2.6617e-6 rad/s (pozitif = CCW)
+// ============================================================
+function getMoonPosition(t) {
+  const meanAnomaly = OMEGA_MOON * t + 2.18;
+  const r = D_EARTH_MOON_AVG * (1 - 0.0549 * Math.cos(meanAnomaly));
+  const lon = OMEGA_MOON * t + 2.18;
+  return { x: r * Math.cos(lon), y: r * Math.sin(lon), r };
+}
+
+function getMoonVelocity(t) {
+  const dt = 1;
+  const p1 = getMoonPosition(t - dt);
+  const p2 = getMoonPosition(t + dt);
+  return { vx: (p2.x - p1.x) / (2 * dt), vy: (p2.y - p1.y) / (2 * dt) };
+}
+
+// ============================================================
+// FİZİK
+// ============================================================
+function getGravityAccel(px, py, t) {
+  const rE = Math.hypot(px, py); const rE3 = rE * rE * rE;
+  let ax = -G * M_EARTH * px / rE3; let ay = -G * M_EARTH * py / rE3;
+  const mp = getMoonPosition(t);
+  const dxM = px - mp.x, dyM = py - mp.y; const rM = Math.hypot(dxM, dyM);
+
+  if (rM > 1000) {
+    const rM3 = rM * rM * rM;
+    ax += -G * M_MOON * dxM / rM3; ay += -G * M_MOON * dyM / rM3;
+  }
+  return { ax, ay, distMoon: rM };
+}
+
+function fastSimulateFull(px, py, pvx, pvy) {
+  let step = 600;
+  let minDist = Infinity;
+  let crashed = false;
+  let maxIter = 6000;
+
+  for (let i = 0; i < maxIter; i++) {
+    const t = missionTime + i * step;
+    const rE = Math.hypot(px, py); const rE3 = rE * rE * rE;
+    let ax = -G * M_EARTH * px / rE3; let ay = -G * M_EARTH * py / rE3;
+
+    const meanAnomaly = OMEGA_MOON * t + 2.18;
+    const rM_orb = D_EARTH_MOON_AVG * (1 - 0.0549 * Math.cos(meanAnomaly));
+    const lon = OMEGA_MOON * t + 2.18;
+    const mx = rM_orb * Math.cos(lon), my = rM_orb * Math.sin(lon);
+
+    const dxM = px - mx, dyM = py - my; const dM = Math.hypot(dxM, dyM);
+
+    if (dM < 3 * SOI_MOON) step = 30;
+    else if (dM < 10 * SOI_MOON) step = 120;
+    else step = 600;
+
+    if (dM > 2000) {
+      const dM3 = dM * dM * dM;
+      ax += -G * M_MOON * dxM / dM3; ay += -G * M_MOON * dyM / dM3;
+    }
+    pvx += ax * step; pvy += ay * step; px += pvx * step; py += pvy * step;
+
+    if (dM < minDist) minDist = dM;
+    if (dM < R_MOON) { crashed = true; break; }
+    if (rE < R_EARTH) return { minDist: Infinity, crashed: true, flewBy: false };
+  }
+  return { minDist, crashed, flewBy: minDist < SOI_MOON };
+}
+
+// ============================================================
+// YAKIT
+// ============================================================
+function canAffordBurn(dvMag) {
+  const m0 = craft.mass;
+  const m1 = m0 / Math.exp(dvMag / (ISP * G0));
+  return (m0 - m1) <= craft.fuel + 1e-6;
+}
+
+function applyDirectBurn(dvx, dvy, dvMag) {
+  if (!canAffordBurn(dvMag)) return false;
+  const massRatio = Math.exp(dvMag / (ISP * G0));
+  const newMass = craft.mass / massRatio;
+  const fuelUsed = craft.mass - newMass;
+  craft.fuel -= fuelUsed;
+  if (craft.fuel < 0) craft.fuel = 0;
+  craft.mass = DRY_MASS + craft.fuel;
+  craft.vx += dvx; craft.vy += dvy;
+  missionStats.totalDeltaV += dvMag;
+  updateFuelUI();
+  return true;
+}
+
+// ============================================================
+// PENCERE ARAMA — CCW UYUMLU
+// ============================================================
+// Araç LEO'dan CCW yönde fırlatılır, Ay da CCW yönde döner.
+// Fırlatma açısı: aNow - π + MOON_ROTATION (Ay'ın uçuş boyunca döndüğü açı)
+// ============================================================
+function findNearestLaunchWindow() {
+  let bestT = missionTime + 3600;
+  let bestScore = -Infinity;
+  const scanStep = 900;
+  const scanRange = 30 * 86400;
+
+  for (let t = missionTime; t < missionTime + scanRange; t += scanStep) {
+    const cm = getMoonPosition(t);
+    const fm = getMoonPosition(t + T_FLIGHT);
+    const aNow = Math.atan2(cm.y, cm.x);
+    const aFut = Math.atan2(fm.y, fm.x);
+    // Araç fırlatıldığında hangi açıda olmalı ki Ay'a ulaşsın?
+    // Hesaplanan lead: aNow - π + MOON_ROTATION_DURING_FLIGHT
+    // Bu açı ile aFut arasındaki fark ne kadar küçükse o kadar iyi
+    let targetAngle = aNow + Math.PI - MOON_ROTATION_DURING_FLIGHT;
+    let diff = aFut - targetAngle;
+    while (diff > Math.PI) diff -= 2 * Math.PI;
+    while (diff < -Math.PI) diff += 2 * Math.PI;
+    const score = -Math.abs(diff);
+    if (score > bestScore) { bestScore = score; bestT = t; }
+  }
+  return { optimalTime: bestT, score: bestScore, waitHours: (bestT - missionTime) / 3600 };
+}
+
+// ============================================================
+// GRID SEARCH
+// ============================================================
+function gridSearchTargeting() {
+  const leoAlt = getVal('leoAlt') * 1000;
+  const rLEO = R_EARTH + leoAlt;
+  const vCirc = Math.sqrt(G * M_EARTH / rLEO);
+  const baseSpeed = vCirc + getVal('tliDeltaV');
+
+  const cm = getMoonPosition(missionTime);
+  const fm = getMoonPosition(missionTime + T_FLIGHT);
+  const aNow = Math.atan2(cm.y, cm.x);
+  // Doğru lead angle: aNow - π + MOON_ROTATION
+  const baseAngle = aNow - Math.PI + MOON_ROTATION_DURING_FLIGHT;
+
+  const targetDist = R_MOON + getVal('captureAlt') * 1000;
+  const safeMin = R_MOON + MIN_SAFE_ALT;
+
+  let bestScore = -Infinity;
+  let optAngle = baseAngle, optSpeed = baseSpeed;
+  let bestResult = null;
+
+  // KABA TARAMA
+  for (let a = -0.25; a <= 0.25; a += 0.012) {
+    for (let v = -30; v <= 30; v += 1.2) {
+      const testAng = baseAngle + a;
+      const testSpd = baseSpeed + v;
+      const px = rLEO * Math.cos(testAng), py = rLEO * Math.sin(testAng);
+      const pvx = -testSpd * Math.sin(testAng), pvy = testSpd * Math.cos(testAng);
+      const res = fastSimulateFull(px, py, pvx, pvy);
+      if (res.crashed) continue;
+      if (res.minDist < safeMin) continue;
+      if (!res.flewBy) continue;
+      const score = -Math.abs(res.minDist - targetDist);
+      if (score > bestScore) { bestScore = score; optAngle = testAng; optSpeed = testSpd; bestResult = res; }
+    }
+  }
+
+  // HASSAS TARAMA
+  if (bestResult !== null) {
+    const baseA = optAngle, baseV = optSpeed;
+    for (let a = -0.02; a <= 0.02; a += 0.002) {
+      for (let v = -2; v <= 2; v += 0.2) {
+        const testAng = baseA + a;
+        const testSpd = baseV + v;
+        const px = rLEO * Math.cos(testAng), py = rLEO * Math.sin(testAng);
+        const pvx = -testSpd * Math.sin(testAng), pvy = testSpd * Math.cos(testAng);
+        const res = fastSimulateFull(px, py, pvx, pvy);
+        if (res.crashed) continue;
+        if (res.minDist < safeMin) continue;
+        if (!res.flewBy) continue;
+        const score = -Math.abs(res.minDist - targetDist);
+        if (score > bestScore) { bestScore = score; optAngle = testAng; optSpeed = testSpd; bestResult = res; }
+      }
+    }
+  }
+
+  return {
+    angle: optAngle, speed: optSpeed,
+    tliDeltaV: optSpeed - vCirc,
+    minDist: bestResult ? bestResult.minDist : null,
+    valid: bestResult !== null
+  };
+}
+
+// ============================================================
+// OTO-PİLOT
+// ============================================================
+function runAutoPilot() {
+  if (!autoMode || autoState.phase === "DONE" || autoState.phase === "FAILED" || autoState.phase === "CRASHED") return;
+
+  switch (autoState.phase) {
+    case "IDLE": {
+      const opt = findNearestLaunchWindow();
+      autoState.targetLaunchTime = opt.optimalTime;
+      const waitSec = opt.optimalTime - missionTime;
+      if (waitSec > 60) {
+        autoState.phase = "WAIT_WINDOW";
+        updateAutoStatus(`⏳ Pencere: ${(waitSec/3600).toFixed(2)} saat sonra`);
+      } else {
+        autoState.phase = "LAUNCH_NOW";
+        updateAutoStatus(`✓ Pencere uygun, fırlatılıyor...`);
+      }
+      break;
+    }
+
+    case "WAIT_WINDOW": {
+      if (missionTime >= autoState.targetLaunchTime) {
+        autoState.phase = "LAUNCH_NOW";
+      } else {
+        const remain = autoState.targetLaunchTime - missionTime;
+        updateAutoStatus(`⏳ Pencereye ${(remain/3600).toFixed(2)} saat`);
+      }
+      break;
+    }
+
+    case "LAUNCH_NOW": {
+      if (performLaunch(true)) {
+        autoState.phase = "CRUISE";
+        autoState.launchTime = missionTime;
+        autoState.lastCorrTime = missionTime;
+        missionStats.launchTime = missionTime;
+        missionStats.launchDate = getSimDate();
+        autoState.loiBurnCount = 0;
+        updateAutoStatus(`🚀 FIRLATILDI!`);
+        addBurnLog(`🤖 OTO FIRLATMA`, "#a855f7");
+      } else {
+        autoState.phase = "FAILED";
+        updateAutoStatus("⚠ Yakıt yetersiz veya hedefleme başarısız");
+      }
+      break;
+    }
+
+    case "CRUISE": {
+      const timeSinceLaunch = missionTime - autoState.launchTime;
+      if (timeSinceLaunch > MAX_TRANSIT_TIME) {
+        autoState.phase = "FAILED";
+        updateAutoStatus(`⚠ ZAMAN AŞIMI`);
+        return;
+      }
+
+      if (stage === "TRANSIT" && timeSinceLaunch > 1800 &&
+          (missionTime - autoState.lastCorrTime) > 5400) {
+        const corr = calculateCorrectionBurn();
+        if (corr && corr.dvMag > 0.5) {
+          if (applyDirectBurn(corr.dvx, corr.dvy, corr.dvMag)) {
+            autoState.corrections++;
+            autoState.lastCorrTime = missionTime;
+            missionStats.corrections++;
+            addBurnLog(`🤖 DÜZELTME #${autoState.corrections}: Δv=${corr.dvMag.toFixed(1)}`, "#a855f7");
+          }
+        }
+      }
+
+      if (stage === "LUNAR_SOI") {
+        autoState.phase = "WAIT_PERIAPSIS";
+        autoState.periapsisWaitStart = missionTime;
+        missionStats.soiEntryTime = missionTime;
+        autoState.loiBurnCount = 0;
+        updateAutoStatus(`🌙 SOI içi - sürekli fren`);
+      }
+      break;
+    }
+
+    case "WAIT_PERIAPSIS": {
+      if (missionTime - autoState.periapsisWaitStart > PERIAPSIS_TIMEOUT) {
+        autoState.phase = "FAILED";
+        updateAutoStatus(`⚠ TIMEOUT`);
+        return;
+      }
+
+      const mp = getMoonPosition(missionTime);
+      const mv = getMoonVelocity(missionTime);
+      const relX = craft.x - mp.x;
+      const relY = craft.y - mp.y;
+      const relVx = craft.vx - mv.vx;
+      const relVy = craft.vy - mv.vy;
+      const dist = Math.hypot(relX, relY);
+      if (dist < 1) return;
+
+      const vRel = Math.hypot(relVx, relVy);
+      const targetV = Math.sqrt(G * M_MOON / Math.max(dist, R_MOON + MIN_SAFE_ALT));
+      const vExcess = vRel - targetV;
+
+      if (vExcess > 5) {
+        const dvMag = Math.min(vExcess, 300);
+        if (canAffordBurn(dvMag)) {
+          const ux = -relVx / vRel, uy = -relVy / vRel;
+          if (applyDirectBurn(ux * dvMag, uy * dvMag, dvMag)) {
+            autoState.loiBurnCount++;
+            missionStats.loiCount++;
+            missionStats.loiDeltaV += dvMag;
+            if (autoState.loiBurnCount <= 3 || autoState.loiBurnCount % 10 === 0) {
+              addBurnLog(`🛬 FREN #${autoState.loiBurnCount}: Δv=${dvMag.toFixed(1)} | v=${(vRel/1000).toFixed(2)} km/s | d=${(dist/1000).toFixed(0)} km`, "#fbbf24");
+            }
+          }
+        } else {
+          autoState.phase = "FAILED";
+          updateAutoStatus("⚠ YAKIT BİTTİ");
+          return;
+        }
+      }
+
+      const h = (relX * relVy) - (relY * relVx);
+      const specificEnergy = (vRel * vRel / 2) - (G * M_MOON / dist);
+      const ecc = Math.sqrt(Math.max(0, 1 + (2 * specificEnergy * h * h) / Math.pow(G * M_MOON, 2)));
+      const a = -(G * M_MOON) / (2 * specificEnergy);
+      const periapsis = specificEnergy < 0 ? a * (1 - ecc) : Infinity;
+
+      if (specificEnergy < 0 && periapsis > R_MOON + 50e3) {
+        autoState.phase = "ORBIT";
+        autoState.orbitStartTime = missionTime;
+        missionStats.orbitTime = missionTime;
+        missionStats.orbitEntryDate = getSimDate();
+        missionStats.ecc = ecc;
+        missionStats.periapsis = periapsis;
+        stage = "MOON_ORBIT";
+        updateUIStage();
+        showCaptureSuccess(ecc, periapsis);
+        showSummary();
+        updateAutoStatus(`🛰 YÖRÜNGEDE! (${autoState.loiBurnCount} manevra)`);
+        addBurnLog(`✓✓ YÖRÜNGEDE! e=${ecc.toFixed(3)}`, "#10b981");
+      }
+      break;
+    }
+
+    case "ORBIT": {
+      const stayDays = getVal('stayDays');
+      const orbitDuration = (missionTime - autoState.orbitStartTime) / 86400;
+      if (orbitDuration >= stayDays) {
+        const returnMode = document.getElementById('returnMode').value;
+        if (returnMode === "yes" && !autoState.returnTriggered) {
+          performTEI();
+          autoState.returnTriggered = true;
+          autoState.phase = "RETURN";
+          stage = "RETURN";
+          updateUIStage();
+          updateAutoStatus(`🌍 TEI uygulandı`);
+          addBurnLog(`🤖 OTO TEI`, "#a855f7");
+        } else if (returnMode === "no") {
+          autoState.phase = "DONE";
+          updateAutoStatus(`✓ Görev tamamlandı`);
+        }
+      } else {
+        const remain = stayDays - orbitDuration;
+        updateAutoStatus(`🛰 Yörüngede: ${orbitDuration.toFixed(2)}/${stayDays.toFixed(1)} gün`);
+      }
+      break;
+    }
+
+    case "RETURN": {
+      const distEarth = Math.hypot(craft.x, craft.y);
+      if (distEarth < R_EARTH * 2) {
+        autoState.phase = "DONE";
+        missionStats.returnDate = getSimDate();
+        stage = "DONE";
+        updateAutoStatus(`✓✓ GÖREV BAŞARILI!`);
+        addBurnLog(`✓✓ GÖREV TAMAMLANDI!`, "#10b981");
+        showSummary();
+      } else {
+        updateAutoStatus(`🌍 Dönüş: ${(distEarth/1e3).toFixed(0)} km`);
+      }
+      break;
+    }
+  }
+}
+
+// ============================================================
+// DÜZELTME
+// ============================================================
+function calculateCorrectionBurn() {
+  if (stage !== "TRANSIT") return null;
+  const tFlightRemaining = Math.max(0, T_FLIGHT - missionTime);
+  if (tFlightRemaining < 3600) return null;
+
+  let px = craft.x, py = craft.y, pvx = craft.vx, pvy = craft.vy;
+  const step = 300;
+  const steps = Math.min(Math.floor(tFlightRemaining / step), 5000);
+
+  let minDist = Infinity;
+  let closestPx = 0, closestPy = 0, closestMoonX = 0, closestMoonY = 0;
+  let validClosest = false;
+
+  for (let i = 0; i < steps; i++) {
+    const t = missionTime + i * step;
+    const accel = getGravityAccel(px, py, t);
+    if (accel.distMoon < 1) break;
+    pvx += accel.ax * step; pvy += accel.ay * step;
+    px += pvx * step; py += pvy * step;
+    if (Math.hypot(px, py) < R_EARTH) break;
+    if (accel.distMoon < minDist) {
+      minDist = accel.distMoon;
+      closestPx = px; closestPy = py;
+      const mp = getMoonPosition(t);
+      closestMoonX = mp.x; closestMoonY = mp.y;
+      validClosest = true;
+    }
+  }
+
+  if (!validClosest) return null;
+  const targetDist = R_MOON + getVal('captureAlt') * 1000;
+  const error = minDist - targetDist;
+  if (Math.abs(error) < 30000) return null;
+
+  const relX = closestPx - closestMoonX;
+  const relY = closestPy - closestMoonY;
+  const relDist = Math.hypot(relX, relY);
+  if (relDist < 1) return null;
+
+  const nx = -relX / relDist, ny = -relY / relDist;
+  let dvMag = Math.min(80, Math.max(1, Math.abs(error) / 1000 * 0.2));
+  if (!canAffordBurn(dvMag)) return null;
+  return { dvx: nx * dvMag, dvy: ny * dvMag, dvMag };
+}
+
+// ============================================================
+// MANUEL
+// ============================================================
+function applyBurn(direction) {
+  if (autoMode) return addBurnLog("⚠ Oto-pilot aktif", "#ef4444");
+  if (stage === "LEO" || stage === "CRASHED" || stage === "DONE") return addBurnLog("⚠ Uygulanamaz", "#ef4444");
+  const dv = getVal('burnDV');
+  const speed = Math.hypot(craft.vx, craft.vy);
+  if (speed < 0.1) return;
+  const ux = craft.vx / speed, uy = craft.vy / speed;
+  const sign = direction === "prograde" ? 1 : -1;
+  if (applyDirectBurn(sign * ux * dv, sign * uy * dv, dv)) {
+    addBurnLog(`✓ ${direction.toUpperCase()} Δv=${dv}`, "#10b981");
+    if (stage === "TRANSIT" || stage === "LUNAR_SOI") predictTrajectory();
+  }
+}
+
+function performLaunch(isAuto = false) {
+  const leoAlt = getVal('leoAlt') * 1000;
+  const rLEO = R_EARTH + leoAlt;
+  const vCirc = Math.sqrt(G * M_EARTH / rLEO);
+  let injectionAngle, injectionSpeed, tliDeltaV;
+
+  if (isAuto) {
+    const result = gridSearchTargeting();
+    if (!result.valid) {
+      addBurnLog("⚠ Güvenli yörünge bulunamadı", "#ef4444");
+      return false;
+    }
+    injectionAngle = result.angle;
+    injectionSpeed = result.speed;
+    tliDeltaV = result.tliDeltaV;
+    setTxt('v-tliDeltaV', tliDeltaV.toFixed(1));
+    document.getElementById('tliDeltaV').value = tliDeltaV.toFixed(1);
+  } else {
+    tliDeltaV = getVal('tliDeltaV');
+    injectionSpeed = vCirc + tliDeltaV;
+    const cm = getMoonPosition(missionTime);
+    const aNow = Math.atan2(cm.y, cm.x);
+    injectionAngle = aNow - Math.PI + MOON_ROTATION_DURING_FLIGHT;
+  }
+
+  if (!canAffordBurn(tliDeltaV)) {
+    addBurnLog(`⚠ YETERSİZ YAKIT`, "#ef4444");
+    return false;
+  }
+
+  craft.x = rLEO * Math.cos(injectionAngle);
+  craft.y = rLEO * Math.sin(injectionAngle);
+  craft.vx = -injectionSpeed * Math.sin(injectionAngle);
+  craft.vy = injectionSpeed * Math.cos(injectionAngle);
+
+  const massRatio = Math.exp(tliDeltaV / (ISP * G0));
+  const fuelUsed = craft.mass * (1 - 1 / massRatio);
+  craft.fuel -= fuelUsed;
+  if (craft.fuel < 0) craft.fuel = 0;
+  craft.mass = DRY_MASS + craft.fuel;
+
+  missionStats.tliDeltaV = tliDeltaV;
+  missionStats.totalDeltaV += tliDeltaV;
+  stage = "TRANSIT"; trail = [];
+  document.getElementById('captureResult').style.display = 'none';
+  document.getElementById('warningBanner').style.display = 'none';
+  updateUIStage(); updateFuelUI(); predictTrajectory();
+
+  if (!isAuto) {
+    missionStats.launchTime = missionTime;
+    missionStats.launchDate = getSimDate();
+    addBurnLog(`✓ TLI: Δv=${tliDeltaV.toFixed(1)}`, "#10b981");
+  }
+  return true;
+}
+
+function performTEI() {
+  const mp = getMoonPosition(missionTime), mv = getMoonVelocity(missionTime);
+  const relVx = craft.vx - mv.vx, relVy = craft.vy - mv.vy;
+  const vRel = Math.hypot(relVx, relVy);
+  if (vRel < 1) return;
+  const escapeV = Math.sqrt(2 * G * M_MOON / SOI_MOON);
+  const dvMag = Math.max(0, escapeV - vRel) + 300;
+  const ux = relVx / vRel, uy = relVy / vRel;
+  if (canAffordBurn(dvMag)) {
+    const massRatio = Math.exp(dvMag / (ISP * G0));
+    const newMass = craft.mass / massRatio;
+    const fuelUsed = craft.mass - newMass;
+    craft.fuel -= fuelUsed;
+    if (craft.fuel < 0) craft.fuel = 0;
+    craft.mass = DRY_MASS + craft.fuel;
+    craft.vx += ux * dvMag; craft.vy += uy * dvMag;
+    missionStats.teiDeltaV = dvMag;
+    missionStats.totalDeltaV += dvMag;
+    missionStats.returnDate = getSimDate();
+    updateFuelUI();
+  }
+}
+
+// ============================================================
+// FİZİK GÜNCELLEME
+// ============================================================
+function update(dt) {
+  missionTime += dt;
+  const mp = getMoonPosition(missionTime), mv = getMoonVelocity(missionTime);
+  moon.x = mp.x; moon.y = mp.y; moon.vx = mv.vx; moon.vy = mv.vy;
+
+  if (stage === "CRASHED" || stage === "DONE") return;
+
+  const accel = getGravityAccel(craft.x, craft.y, missionTime);
+  craft.vx += accel.ax * dt; craft.vy += accel.ay * dt;
+  craft.x += craft.vx * dt; craft.y += craft.vy * dt;
+
+  if (missionTime % 600 < dt) {
+    trail.push({ x: craft.x, y: craft.y });
+    if (trail.length > 2500) trail.shift();
+  }
+
+  const rE = Math.hypot(craft.x, craft.y);
+
+  if (stage === "TRANSIT" && accel.distMoon < SOI_MOON) {
+    stage = "LUNAR_SOI";
+    updateUIStage();
+    if (autoMode && (autoState.phase === "CRUISE" || autoState.phase === "WAIT_PERIAPSIS")) {
+      const relVx = craft.vx - moon.vx, relVy = craft.vy - moon.vy;
+      const vRel = Math.hypot(relVx, relVy);
+      const targetV = Math.sqrt(G * M_MOON / accel.distMoon) * 1.2;
+      const dvMag = Math.max(0, vRel - targetV);
+      if (dvMag > 1 && canAffordBurn(dvMag)) {
+        const ux = -relVx / vRel, uy = -relVy / vRel;
+        if (applyDirectBurn(ux * dvMag, uy * dvMag, dvMag)) {
+          autoState.loiBurnCount++;
+          missionStats.loiCount++;
+          missionStats.loiDeltaV += dvMag;
+          addBurnLog(`🚪 SOI GİRİŞ FRENİ: Δv=${dvMag.toFixed(1)}`, "#f59e0b");
+        }
+      }
+    }
+  } else if (stage === "LUNAR_SOI" && accel.distMoon > SOI_MOON) {
+    stage = "TRANSIT"; updateUIStage();
+  }
+
+  if (stage === "LUNAR_SOI" || stage === "MOON_ORBIT") {
+    const relX = craft.x - moon.x, relY = craft.y - moon.y;
+    const relVx = craft.vx - moon.vx, relVy = craft.vy - moon.vy;
+    const vRel = Math.hypot(relVx, relVy);
+    const specificEnergy = (vRel * vRel / 2) - (G * M_MOON / accel.distMoon);
+    setTxt('h-rel-vel', (vRel / 1000).toFixed(3) + " km/s");
+
+    // Yörünge yönü tespiti (açısal momentum z-işareti)
+    const hz = relX * relVy - relY * relVx;
+    const dirEl = document.getElementById('h-dir');
+    if (hz > 0) {
+      dirEl.innerText = 'CCW (Prograde)';
+      dirEl.style.color = '#10b981';
+    } else {
+      dirEl.innerText = 'CW (Retrograde)';
+      dirEl.style.color = '#fbbf24';
+    }
+
+    if (specificEnergy < 0 && accel.distMoon > R_MOON && stage === "LUNAR_SOI") {
+      const h = (relX * relVy) - (relY * relVx);
+      const ecc = Math.sqrt(Math.max(0, 1 + (2 * specificEnergy * h * h) / Math.pow(G * M_MOON, 2)));
+      const a = -(G * M_MOON) / (2 * specificEnergy);
+      const periapsis = a * (1 - ecc);
+      if (periapsis > R_MOON + MIN_SAFE_ALT) {
+        stage = "MOON_ORBIT";
+        missionStats.ecc = ecc;
+        missionStats.periapsis = periapsis;
+        updateUIStage(); showCaptureSuccess(ecc, periapsis);
+        showSummary();
+      }
+    }
+    if (specificEnergy >= 0 && stage === "MOON_ORBIT") {
+      stage = "LUNAR_SOI"; updateUIStage();
+      document.getElementById('captureResult').style.display = 'none';
+    }
+  }
+
+  if (rE < R_EARTH) {
+    stage = "CRASHED";
+    document.getElementById('h-stage').innerText = 'DÜNYA\'YA ÇARPTI';
+    document.getElementById('h-stage').className = 'stage-badge danger';
+    if (autoMode) { autoState.phase = "CRASHED"; updateAutoStatus("⚠ DÜNYA'YA ÇARPTI"); }
+  } else if (accel.distMoon < R_MOON) {
+    stage = "CRASHED";
+    document.getElementById('h-stage').innerText = 'AY\'A ÇARPTI';
+    document.getElementById('h-stage').className = 'stage-badge danger';
+    if (autoMode) { autoState.phase = "CRASHED"; updateAutoStatus("⚠ AY'A ÇARPTI"); }
+  }
+}
+
+// ============================================================
+// YÖRÜNGE TAHMİNİ
+// ============================================================
+function predictTrajectory() {
+  if (stage !== "TRANSIT" && stage !== "LUNAR_SOI" && stage !== "RETURN") { predictedPath = []; return; }
+  let px = craft.x, py = craft.y, pvx = craft.vx, pvy = craft.vy;
+  const path = []; let step = 600;
+  for (let i = 0; i < 1500; i++) {
+    const t = missionTime + i * step;
+    const accel = getGravityAccel(px, py, t);
+    if (accel.distMoon < 3 * SOI_MOON) step = 60;
+    else step = 600;
+    pvx += accel.ax * step; pvy += accel.ay * step;
+    px += pvx * step; py += pvy * step;
+    if (Math.hypot(px, py) < R_EARTH || accel.distMoon < R_MOON) break;
+    if (i % 4 === 0) path.push({ x: px, y: py });
+  }
+  predictedPath = path; checkTrajectoryRisk();
+}
+
+function checkTrajectoryRisk() {
+  if (!autoMode && stage === "TRANSIT" && predictedPath.length > 0) {
+    let minDist = Infinity;
+    for (let i = 0; i < predictedPath.length; i++) {
+      const mp = getMoonPosition(missionTime + i * 4 * 600);
+      const d = Math.hypot(predictedPath[i].x - mp.x, predictedPath[i].y - mp.y);
+      if (d < minDist) minDist = d;
+    }
+    const banner = document.getElementById('warningBanner');
+    if (minDist < SOI_MOON && minDist > R_MOON + MIN_SAFE_ALT) {
+      banner.style.display = 'block'; banner.className = 'warning-banner';
+      banner.style.background = 'rgba(16, 185, 129, 0.15)'; banner.style.border = '1px solid var(--success)'; banner.style.color = 'var(--success)';
+      banner.innerText = `✓ Ay'a ulaşacak. Min İrtifa: ${((minDist - R_MOON)/1000).toFixed(0)} km`;
+    } else if (minDist <= R_MOON) {
+      banner.style.display = 'block'; banner.className = 'warning-banner';
+      banner.style.background = 'rgba(239, 68, 68, 0.2)'; banner.style.border = '1px solid var(--danger)'; banner.style.color = 'var(--danger)';
+      banner.innerText = `⚠ ÇARPMA ROTASI!`;
+    } else if (minDist <= R_MOON + MIN_SAFE_ALT) {
+      banner.style.display = 'block'; banner.className = 'warning-banner';
+      banner.style.background = 'rgba(251, 191, 36, 0.2)'; banner.style.border = '1px solid var(--warn)'; banner.style.color = 'var(--warn)';
+      banner.innerText = `⚠ Çok yakın geçiş! (${((minDist-R_MOON)/1000).toFixed(0)} km)`;
+    } else {
+      banner.style.display = 'block'; banner.className = 'warning-banner';
+      banner.style.background = 'rgba(251, 191, 36, 0.2)'; banner.style.border = '1px solid var(--warn)'; banner.style.color = 'var(--warn)';
+      banner.innerText = `⚠ Ay'ı ıskalayacak!`;
+    }
+  } else {
+    document.getElementById('warningBanner').style.display = 'none';
+  }
+}
+
+// ============================================================
+// ÇİZİM
+// ============================================================
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+function render() {
+  canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight;
+  const w = canvas.width, h = canvas.height, cx = w * 0.5, cy = h * 0.5;
+  const scale = (w * 0.35) / D_EARTH_MOON_AVG;
+
+  ctx.strokeStyle = "rgba(148, 163, 184, 0.12)";
+  ctx.beginPath(); ctx.arc(cx, cy, D_EARTH_MOON_AVG * scale, 0, Math.PI * 2); ctx.stroke();
+
+  if (predictedPath.length > 1) {
+    ctx.strokeStyle = autoMode ? "rgba(168, 85, 247, 0.6)" : "rgba(251, 191, 36, 0.5)";
+    ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.beginPath();
+    for (let i = 0; i < predictedPath.length; i++) {
+      const px = cx + predictedPath[i].x * scale, py = cy + predictedPath[i].y * scale;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  if (trail.length > 1) {
+    ctx.strokeStyle = "#38bdf8"; ctx.lineWidth = 1.2; ctx.beginPath();
+    for (let i = 0; i < trail.length; i++) {
+      const px = cx + trail[i].x * scale, py = cy + trail[i].y * scale;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = "#3b82f6";
+  ctx.beginPath(); ctx.arc(cx, cy, Math.max(6, R_EARTH * scale), 0, Math.PI * 2); ctx.fill();
+
+  const mx = cx + moon.x * scale, my = cy + moon.y * scale;
+  ctx.fillStyle = "#94a3b8";
+  ctx.beginPath(); ctx.arc(mx, my, Math.max(4, R_MOON * scale), 0, Math.PI * 2); ctx.fill();
+
+  ctx.strokeStyle = "rgba(239, 68, 68, 0.3)"; ctx.setLineDash([2, 2]);
+  ctx.beginPath(); ctx.arc(mx, my, Math.max(4, (R_MOON + MIN_SAFE_ALT) * scale), 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.strokeStyle = "rgba(16, 185, 129, 0.15)";
+  ctx.beginPath(); ctx.arc(mx, my, Math.max(4, SOI_MOON * scale), 0, Math.PI * 2); ctx.stroke();
+
+  const sx = cx + craft.x * scale, sy = cy + craft.y * scale;
+  ctx.fillStyle = autoMode ? "#a855f7" : "#f59e0b";
+  ctx.beginPath(); ctx.arc(sx, sy, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.stroke();
+
+  setTxt('h-time', (missionTime / 86400).toFixed(2) + " gün");
+  setTxt('h-dist-e', (Math.hypot(craft.x, craft.y) / 1e3).toLocaleString('tr-TR', { maximumFractionDigits: 0 }) + " km");
+  setTxt('h-dist-m', (Math.hypot(craft.x - moon.x, craft.y - moon.y) / 1e3).toLocaleString('tr-TR', { maximumFractionDigits: 0 }) + " km");
+  setTxt('h-vel', (Math.hypot(craft.vx, craft.vy) / 1e3).toFixed(3) + " km/s");
+}
+
+// ============================================================
+// ARAYÜZ
+// ============================================================
+function updateUIStage() {
+  const badge = document.getElementById('h-stage'), cap = document.getElementById('h-capture');
+  if (stage === "TRANSIT") {
+    badge.innerText = 'AY TRANSFERİ'; badge.className = 'stage-badge' + (autoMode ? ' auto' : '');
+    cap.innerText = "Dışında"; cap.style.color = "#94a3b8";
+  } else if (stage === "LUNAR_SOI") {
+    badge.innerText = 'AY SOI'; badge.className = 'stage-badge warn';
+    cap.innerText = "İçinde"; cap.style.color = "var(--warn)";
+  } else if (stage === "MOON_ORBIT") {
+    badge.innerText = 'AY YÖRÜNGESİ'; badge.className = 'stage-badge success';
+    cap.innerText = "Yörüngede"; cap.style.color = "var(--success)";
+  } else if (stage === "RETURN") {
+    badge.innerText = 'DÜNYA\'YA DÖNÜŞ'; badge.className = 'stage-badge warn';
+    cap.innerText = "Çıkış"; cap.style.color = "var(--warn)";
+  }
+}
+
+function showCaptureSuccess(ecc, periapsis) {
+  const box = document.getElementById('captureResult'); box.style.display = 'block'; box.className = 'result-box success';
+  box.innerHTML = `
+    <div style="color:#10b981;font-weight:bold;">✓ AY YÖRÜNGESİNE OTURDU</div>
+    <div class="detail">Zaman: ${formatDateTR(getSimDate())}</div>
+    <div class="detail">e: ${ecc.toFixed(4)} | Periapsis: ${((periapsis - R_MOON)/1000).toFixed(0)} km</div>
+    <div class="detail">LOI Manevra: ${missionStats.loiCount}</div>
+  `;
+}
+
+function showSummary() {
+  const card = document.getElementById('summaryCard'); card.style.display = 'block';
+  const elapsedDays = (missionTime / 86400).toFixed(2);
+  const fuelUsed = INITIAL_FUEL_KG - craft.fuel;
+  const fuelPct = ((fuelUsed / INITIAL_FUEL_KG) * 100).toFixed(1);
+
+  const items = [
+    { label: 'Toplam Süre', value: elapsedDays + ' gün' },
+    { label: 'Toplam Δv', value: missionStats.totalDeltaV.toFixed(0) + ' m/s' },
+    { label: 'TLI Δv', value: missionStats.tliDeltaV.toFixed(0) + ' m/s' },
+    { label: 'LOI Δv', value: missionStats.loiDeltaV.toFixed(0) + ' m/s' },
+    { label: 'TEI Δv', value: missionStats.teiDeltaV.toFixed(0) + ' m/s' },
+    { label: 'LOI Sayısı', value: missionStats.loiCount + ' manevra' },
+    { label: 'Yakıt', value: fuelUsed.toFixed(3) + ' kg (%' + fuelPct + ')' },
+    { label: 'Kalan Kütle', value: craft.mass.toFixed(3) + ' kg' }
+  ];
+
+  if (missionStats.ecc !== null) {
+    items.push({ label: 'Yörünge e', value: missionStats.ecc.toFixed(4) });
+    items.push({ label: 'Periapsis', value: ((missionStats.periapsis - R_MOON)/1000).toFixed(0) + ' km' });
+  }
+
+  document.getElementById('summaryContent').innerHTML = items.map(it =>
+    `<div class="summary-item"><span class="summary-label">${it.label}</span><span class="summary-value">${it.value}</span></div>`
+  ).join('');
+
+  const returnBtn = document.getElementById('btn-return-now');
+  if (stage === "MOON_ORBIT" && !autoMode) {
+    returnBtn.style.display = 'block';
+    returnBtn.onclick = () => {
+      performTEI();
+      stage = "RETURN";
+      updateUIStage();
+      addBurnLog(`✓ Manuel TEI`, "#fbbf24");
+    };
+  }
+}
+
+function updateFuelUI() {
+  const fuelPct = (craft.fuel / INITIAL_FUEL_KG) * 100;
+  setTxt('v-fuel', fuelPct.toFixed(1));
+  setTxt('v-fuel-kg', craft.fuel.toFixed(3) + ' kg');
+  setTxt('h-fuel', craft.fuel.toFixed(3) + ' kg');
+  setTxt('h-mass', craft.mass.toFixed(3) + ' kg');
+  const fill = document.getElementById('fuelFill');
+  fill.style.width = fuelPct + '%';
+  fill.className = 'fuel-fill' + (fuelPct < 20 ? ' danger' : fuelPct < 50 ? ' warn' : '');
+}
+
+function addBurnLog(msg, color) {
+  burnLog.unshift({ msg, color, time: missionTime });
+  if (burnLog.length > 8) burnLog.pop();
+  document.getElementById('burnLog').innerHTML = burnLog.map(b =>
+    `<div class="log-entry" style="color:${b.color};">[${(b.time/3600).toFixed(1)}h] ${b.msg}</div>`
+  ).join('');
+}
+
+function manualTargeting() {
+  const result = gridSearchTargeting();
+  const output = document.getElementById('targetOutput');
+  if (!result.valid) {
+    output.innerHTML = `
+      <div style="color:#ef4444;font-weight:bold;">✗ Güvenli Yörünge Bulunamadı</div>
+      <div>Hedef irtifayı artırın veya TLI'yi ayarlayın.</div>
+    `;
+    return;
+  }
+  const newTLI = result.tliDeltaV;
+  document.getElementById('tliDeltaV').value = newTLI.toFixed(1);
+  setTxt('v-tliDeltaV', newTLI.toFixed(1));
+  const errKm = ((result.minDist - (R_MOON + getVal('captureAlt') * 1000)) / 1000).toFixed(0);
+  output.innerHTML = `
+    <div style="color:#06b6d4;font-weight:bold;">🎯 Hedefleme Tamamlandı</div>
+    <div>Yeni TLI Δv: <b style="color:#fff;">${newTLI.toFixed(1)} m/s</b></div>
+    <div>Min Geçiş İrtifası: <b style="color:#10b981;">${((result.minDist - R_MOON)/1000).toFixed(0)} km</b></div>
+    <div>Hedeften Sapma: <b style="color:#fbbf24;">${errKm} km</b></div>
+    <div style="color:${canAffordBurn(newTLI) ? '#10b981' : '#ef4444'};">
+      ${canAffordBurn(newTLI) ? '✓ Güvenli & yakıt yeterli' : '✗ Yetersiz yakıt'}
+    </div>
+  `;
+}
+
+// ============================================================
+// ANA DÖNGÜ — SUB-STEP LİMİTİ + ADAPTİF KORUMA
+// ============================================================
+let lastTime = performance.now();
+let predictCounter = 0;
+let fpsSmoothed = 60;
+let loopOverloadWarn = false;
+
+function isCriticalPhase() {
+  if (!document.getElementById('warpGuard').checked) return false;
+  if (stage === "LUNAR_SOI") return true;
+  if (stage === "TRANSIT") {
+    const mp = getMoonPosition(missionTime);
+    const dm = Math.hypot(craft.x - mp.x, craft.y - mp.y);
+    if (dm < 3 * SOI_MOON) return true;
+  }
+  return false;
+}
+
+function getAdaptiveMaxDt() {
+  let maxPhysicsDt = 2.0;
+
+  if (stage === "LEO") {
+    maxPhysicsDt = 0.5;
+  } else if (stage === "LUNAR_SOI") {
+    const mp = getMoonPosition(missionTime);
+    const distMoon = Math.hypot(craft.x - mp.x, craft.y - mp.y);
+    if (distMoon < 5000e3) maxPhysicsDt = 0.05;
+    else if (distMoon < 20000e3) maxPhysicsDt = 0.1;
+    else maxPhysicsDt = 0.25;
+  } else if (stage === "TRANSIT") {
+    maxPhysicsDt = 1.0;
+  } else if (stage === "RETURN") {
+    maxPhysicsDt = 2.0;
+  } else if (stage === "MOON_ORBIT") {
+    maxPhysicsDt = 2.0;
+  }
+
+  if (autoMode && (autoState.phase === "WAIT_PERIAPSIS" || autoState.phase === "CRUISE")) {
+    maxPhysicsDt = Math.min(maxPhysicsDt, 0.5);
+  }
+
+  return maxPhysicsDt;
+}
+
+function loop(now) {
+  const dtRealRaw = (now - lastTime) / 1000;
+  lastTime = now;
+  const dtReal = Math.min(dtRealRaw, 0.05);
+
+  const instFps = 1 / Math.max(dtRealRaw, 1e-3);
+  fpsSmoothed = fpsSmoothed * 0.9 + instFps * 0.1;
+
+  let warp = getVal('warp');
+  if (isCriticalPhase() && autoMode) {
+    warp = Math.min(warp, CRITICAL_WARP_CAP);
+  }
+
+  const maxPhysicsDt = getAdaptiveMaxDt();
+  const totalSimDt = dtReal * warp;
+
+  // ⚠️ CPU KORUMASI: sub-step üst sınırı
+  let subSteps = Math.max(1, Math.ceil(totalSimDt / maxPhysicsDt));
+  let dtSub = totalSimDt / subSteps;
+
+  if (subSteps > MAX_SUBSTEPS) {
+    subSteps = MAX_SUBSTEPS;
+    dtSub = totalSimDt / subSteps;
+    loopOverloadWarn = true;
+  } else {
+    loopOverloadWarn = false;
+  }
+
+  const perf = document.getElementById('perfBadge');
+  if (loopOverloadWarn) perf.classList.add('warn');
+  else perf.classList.remove('warn');
+
+  for (let i = 0; i < subSteps; i++) {
+    if (stage === "CRASHED" || stage === "DONE") break;
+    if (autoMode && (missionTime - autoLastRunTime) >= AUTO_MIN_INTERVAL) {
+      runAutoPilot();
+      autoLastRunTime = missionTime;
+    }
+    update(dtSub);
+  }
+
+  predictCounter++;
+  if (predictCounter % 30 === 0 && (stage === "TRANSIT" || stage === "LUNAR_SOI" || stage === "RETURN")) {
+    predictTrajectory();
+  }
+
+  render();
+
+  if (predictCounter % 10 === 0) {
+    setTxt('p-fps', fpsSmoothed.toFixed(0));
+    setTxt('p-substep', subSteps);
+    setTxt('p-dtsub', (dtSub * 1000).toFixed(0));
+    setTxt('p-ewarp', warp.toFixed(0) + 'x');
+    setTxt('p-status', loopOverloadWarn ? '⚠ CPU koruma' : '');
+  }
+
+  requestAnimationFrame(loop);
+}
+
+// ============================================================
+// OLAYLAR
+// ============================================================
+document.getElementById('mode-manual').onclick = () => {
+  autoMode = false;
+  document.getElementById('mode-manual').classList.add('active');
+  document.getElementById('mode-auto').classList.remove('active', 'auto');
+  document.getElementById('autoPanel').style.display = 'none';
+  document.getElementById('manualPanel').style.display = 'block';
+  document.getElementById('h-mode').style.display = 'none';
+  document.getElementById('hudBox').classList.remove('auto-mode');
+  document.getElementById('btn-launch').disabled = false;
+  document.getElementById('btn-prograde').disabled = false;
+  document.getElementById('btn-retrograde').disabled = false;
+  document.getElementById('autoStatus').style.display = 'none';
+  document.getElementById('h-auto-info').style.display = 'none';
+};
+
+document.getElementById('mode-auto').onclick = () => {
+  autoMode = true;
+  document.getElementById('mode-auto').classList.add('active', 'auto');
+  document.getElementById('mode-manual').classList.remove('active');
+  document.getElementById('autoPanel').style.display = 'block';
+  document.getElementById('manualPanel').style.display = 'none';
+  document.getElementById('h-mode').style.display = 'inline-block';
+  document.getElementById('hudBox').classList.add('auto-mode');
+  document.getElementById('btn-launch').disabled = true;
+  document.getElementById('btn-prograde').disabled = true;
+  document.getElementById('btn-retrograde').disabled = true;
+};
+
+document.getElementById('btn-analyze').onclick = () => {
+  const res = findNearestLaunchWindow();
+  document.getElementById('analysisOutput').innerHTML = `
+    <div style="color:#38bdf8;font-weight:bold;margin-bottom:3px;">Fırsat Analizi</div>
+    <div>İdeal Tarih: <span style="color:#fff;">${formatDateTR(new Date(simStartDate.getTime() + res.optimalTime * 1000))}</span></div>
+    <div>Bekleme: ${res.waitHours.toFixed(1)} saat</div>
+  `;
+};
+
+document.getElementById('warp').oninput = e => setTxt('v-warp', e.target.value);
+document.getElementById('leoAlt').oninput = e => setTxt('v-leoAlt', e.target.value);
+document.getElementById('tliDeltaV').oninput = e => setTxt('v-tliDeltaV', e.target.value);
+document.getElementById('captureAlt').oninput = e => { setTxt('v-captureAlt', e.target.value); predictTrajectory(); };
+document.getElementById('burnDV').oninput = e => setTxt('v-burnDV', e.target.value);
+document.getElementById('stayDays').oninput = e => setTxt('v-stayDays', e.target.value);
+document.getElementById('power').oninput = e => setTxt('v-power', e.target.value);
+
+document.getElementById('btn-launch').onclick = () => performLaunch(false);
+document.getElementById('btn-target').onclick = manualTargeting;
+
+document.getElementById('btn-auto-launch').onclick = () => {
+  document.getElementById('btn-reset').click();
+  autoState = {
+    active: true, phase: "IDLE", targetTLI: 0, corrections: 0, totalDeltaV: 0,
+    launchTime: null, lastCorrTime: 0, targetLaunchTime: 0,
+    periapsisWaitStart: null, orbitStartTime: null,
+    returnTriggered: false, loiBurnCount: 0
+  };
+  autoLastRunTime = -1e9;
+  updateAutoStatus("Oto-pilot başlatılıyor...");
+};
+
+document.getElementById('btn-prograde').onclick = () => applyBurn("prograde");
+document.getElementById('btn-retrograde').onclick = () => applyBurn("retrograde");
+
+document.getElementById('btn-fire').onclick = () => {
+  if (stage === "MOON_ORBIT") {
+    stage = "BOOST";
+    document.getElementById('h-stage').innerText = 'YILDIZLARARASI İTKİ';
+    document.getElementById('h-stage').className = 'stage-badge';
+  }
+};
+
+document.getElementById('btn-reset').onclick = () => {
+  stage = "LEO";
+  missionTime = 0;
+  simStartDate = new Date(document.getElementById('startDate').value + "T12:00:00Z");
+
+  const leoAlt = getVal('leoAlt') * 1000;
+  const rLEO = R_EARTH + leoAlt;
+  craft = {
+    x: rLEO, y: 0, vx: 0, vy: Math.sqrt(G * M_EARTH / rLEO),
+    mass: INITIAL_MASS, fuel: INITIAL_FUEL_KG
+  };
+  trail = []; predictedPath = []; burnLog = [];
+  missionStats = {
+    startTime: 0, launchTime: null, soiEntryTime: null, orbitTime: null,
+    loiDeltaV: 0, tliDeltaV: 0, teiDeltaV: 0, totalDeltaV: 0, corrections: 0,
+    launchDate: null, orbitEntryDate: null, returnDate: null,
+    periapsis: null, ecc: null, loiCount: 0
+  };
+  autoState = {
+    active: false, phase: "IDLE", targetTLI: 0, corrections: 0, totalDeltaV: 0,
+    launchTime: null, lastCorrTime: 0, targetLaunchTime: 0,
+    periapsisWaitStart: null, orbitStartTime: null,
+    returnTriggered: false, loiBurnCount: 0
+  };
+  autoLastRunTime = -1e9;
+
+  document.getElementById('h-stage').innerText = 'LEO BEKLEMEDE';
+  document.getElementById('h-stage').className = 'stage-badge' + (autoMode ? ' auto' : '');
+  document.getElementById('h-capture').style.color = "#94a3b8";
+  document.getElementById('h-capture').innerText = "Dışında";
+  document.getElementById('h-dir').innerText = 'CCW (Prograde)';
+  document.getElementById('h-dir').style.color = '#10b981';
+  document.getElementById('captureResult').style.display = 'none';
+  document.getElementById('warningBanner').style.display = 'none';
+  document.getElementById('analysisOutput').innerHTML = '';
+  document.getElementById('targetOutput').innerHTML = '';
+  document.getElementById('burnLog').innerHTML = '';
+  document.getElementById('autoStatus').style.display = 'none';
+  document.getElementById('h-auto-info').style.display = 'none';
+  document.getElementById('summaryCard').style.display = 'none';
+  updateFuelUI();
+  lastTime = performance.now();
+};
+
+document.getElementById('btn-reset').click();
+setTxt('v-warp', '2000');
+setTxt('v-leoAlt', '300');
+setTxt('v-tliDeltaV', '3125');
+setTxt('v-captureAlt', '1500');
+setTxt('v-burnDV', '50');
+setTxt('v-stayDays', '3.0');
+setTxt('v-power', '100');
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
